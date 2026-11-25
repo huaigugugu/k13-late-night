@@ -354,6 +354,7 @@ body::after{
         <div class="ln on">操作员：已离台</div>
         <div class="ln on">最后指令：重复播放</div>
         <div class="ln on">磁带剩余：未知</div>
+        <div class="ln" id="auxCount"></div>
         <div class="ln" id="auxLine"></div>
         <div><span class="cur"></span></div>
       </div>
@@ -445,6 +446,21 @@ body::after{
   const tv = $('#tv'), screen = $('#screen'), stage = $('#stage'), snow = $('#snow');
   const osd = $('#osd'), tc = $('#tc'), chanNum = $('#chanNum'), hint = $('#hint');
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- 第几次收看：数字随链接走 ---- */
+  const params = new URLSearchParams(location.search);
+  let viewNo = parseInt(params.get('v'), 10);
+  if (!Number.isFinite(viewNo) || viewNo < 1) viewNo = 1;
+  let viewBumped = false;
+  function bumpViewURL() {
+    if (viewBumped) return;
+    viewBumped = true;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('v', String(viewNo + 1));
+      history.replaceState(null, '', u.toString());
+    } catch (e) { /* file:// 下可能被拦，忽略 */ }
+  }
 
   /* ---------------- 状态 ---------------- */
   let powered = false;
@@ -641,6 +657,9 @@ body::after{
         if (ch !== 'aux' || !powered) return;
         line.textContent = '> 检测到外部输入：' + deviceName();
         line.classList.add('on');
+        const cnt = $('#auxCount');
+        cnt.textContent = '> 本台已被收看 ' + viewNo + ' 次。';
+        cnt.classList.add('on');
       }, 1800);
       setTimeout(() => {
         if (ch !== 'aux' || !powered) return;
@@ -689,6 +708,7 @@ body::after{
     busy = false;
     lastAct = Date.now();
     hint.textContent = '← → 换台 · 数字键直选 · 节目单里有 13 台';
+    bumpViewURL();
     setTimeout(() => { paintChannel(); burst(.25, 60, 1200); }, 380);
     setTimeout(() => { paintChannel(); }, 900);
   }
@@ -745,7 +765,7 @@ body::after{
       ['这不是测试。', 900],
       ['信号来源：本地', 900],
       ['当前时间 ' + hm + '，你在 ' + dev + ' 上观看', 1100],
-      ['本台已确认：观看者 1 名', 1000],
+      ['本台已确认：观看者 1 名 · 第 ' + viewNo + ' 次收看', 1000],
       ['请保持观看。', 900],
       ['请勿换台。', 700],
       ['请勿关机。', 700]
@@ -778,7 +798,7 @@ body::after{
     const f = $('#final');
     const t = $('#finalText');
     f.classList.add('on');
-    t.innerHTML = '本台将于明日 <em>03:14</em> 停播。<br>感谢您多年来的收看。';
+    t.innerHTML = '本台将于明日 <em>03:14</em> 停播。<br>感谢您多年来的收看。<br><br><span style="opacity:.6;font-size:.78em">这是第 ' + viewNo + ' 次。</span>';
   }
 
   /* ---------------- 递归 ---------------- */
@@ -791,6 +811,7 @@ body::after{
     screen.classList.add('live');
     osdVisible(false);
     stage.style.opacity = '0';
+    $('#recurs .cap').textContent = '你正在看什么？ · 第 ' + viewNo + ' 次';
     setSnow(.04);
     // 继续有声音：极轻的哼鸣
     audioInit();
