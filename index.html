@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>K-13 深夜放送</title>
+<meta name="description" content="K-13 频道，1987 年 11 月 3 日，凌晨三点。请勿换台。">
+<meta name="theme-color" content="#0a0806">
+<link rel="preload" as="image" href="data:,">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Courier New",monospace;
+  --serif:ui-serif,"Songti SC","SimSun",Georgia,serif;
+  --amber:#e0a24b;
+}
+html,body{height:100%}
+body{
+  background:#070605;
+  color:#cfc4b6;
+  font-family:var(--sans);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:22px 16px 26px;gap:18px;
+}
+/* 房间 */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 52% 44% at 50% 40%,rgba(224,162,75,.10),transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 110%,rgba(0,0,0,.9),transparent 60%),
+    linear-gradient(#0a0806,#050403 70%,#020202);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:3px 3px;
+}
+
+/* ---------- 电视机 ---------- */
+.tv{
+  position:relative;z-index:2;
+  width:min(96vw,940px);
+  padding:20px 20px 0;
+  border-radius:20px 20px 12px 12px;
+  background:linear-gradient(170deg,#3b342c,#2a241e 40%,#1c1814);
+  box-shadow:
+    0 40px 80px -30px rgba(0,0,0,.95),
+    0 0 0 1px rgba(255,255,255,.05),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -3px 8px rgba(0,0,0,.6);
+}
+.tv .brand{
+  position:absolute;left:26px;bottom:-2px;transform:translateY(-100%);
+  font:600 9px/1 var(--mono);letter-spacing:.26em;color:#5c5148;text-transform:uppercase;
+}
+.screen{
+  position:relative;aspect-ratio:4/3;width:100%;
+  background:#050505;overflow:hidden;
+  border-radius:26px/22px;
+  box-shadow:
+    inset 0 0 70px 24px rgba(0,0,0,.92),
+    inset 0 0 8px 2px rgba(0,0,0,.9),
+    0 0 0 10px #14100d,
+    0 0 0 12px #2a231c;
+  filter:saturate(1.06) contrast(1.04);
+}
+.screen>*{position:absolute;inset:0}
+/* 关机 = 一条亮线 → 一个点 */
+#powerdot{
+  z-index:60;pointer-events:none;opacity:0;
+  background:#d9f2ff;border-radius:50%;
+  left:50%;top:50%;inset:auto;width:0;height:0;transform:translate(-50%,-50%);
+  box-shadow:0 0 24px 6px rgba(190,230,255,.7);
+}
+.tv.off #powerdot{animation:collapse .85s cubic-bezier(.7,0,.9,.4) forwards}
+@keyframes collapse{
+  0%{opacity:1;width:100%;height:3px;top:50%}
+  35%{opacity:1;width:100%;height:3px}
+  70%{opacity:1;width:26px;height:2px}
+  100%{opacity:.55;width:5px;height:5px}
+}
+.tv.off .screen{background:#060606}
+
+/* 雪花 */
+#snow{z-index:15;width:100%;height:100%;image-rendering:pixelated;opacity:0;transition:opacity .12s;mix-blend-mode:screen}
+/* 扫描线 + 暗角 + 玻璃反光 */
+.crtlines{z-index:20;pointer-events:none;opacity:.55;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.42) 0 1px,transparent 1px 3px);}
+.crtvig{z-index:21;pointer-events:none;
+  background:radial-gradient(ellipse 78% 72% at 50% 48%,transparent 42%,rgba(0,0,0,.55) 78%,rgba(0,0,0,.92) 100%);}
+.crtglass{z-index:22;pointer-events:none;opacity:.22;
+  background:radial-gradient(ellipse 46% 34% at 26% 16%,rgba(255,255,255,.5),transparent 70%);}
+/* 滚动亮带 */
+.roll{z-index:23;pointer-events:none;opacity:.16;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.6) 45%,transparent 62%);
+  height:26%;animation:roll 7.5s linear infinite;}
+@keyframes roll{0%{top:-26%}100%{top:100%}}
+/* 磁迹错位条 */
+.track{z-index:24;pointer-events:none;opacity:.13;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.8),transparent);height:6%;top:0;
+  animation:track 5.2s linear infinite;
+  filter:blur(1px);}
+@keyframes track{0%{top:-8%;opacity:.05}8%{opacity:.2}30%{opacity:.05}100%{top:104%;opacity:.03}}
+
+/* ---------- 频道内容 ---------- */
+#stage{z-index:10;overflow:hidden}
+.ch{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .18s}
+#stage[data-ch="02"] .ch-02,#stage[data-ch="04"] .ch-04,#stage[data-ch="07"] .ch-07,
+#stage[data-ch="09"] .ch-09,#stage[data-ch="13"] .ch-13,#stage[data-ch="aux"] .ch-aux{
+  opacity:1;visibility:visible;
+}
+.freeze #stage{animation:freeze .28s steps(2) 1}
+@keyframes freeze{0%{transform:translateY(0)}50%{transform:translateY(-14px) skewX(.6deg)}100%{transform:translateY(0)}}
+
+/* 02 气象 */
+.ch-02{background:linear-gradient(#d8cfba,#b9ae95 60%,#8f866f)}
+.ch-02 svg{width:100%;height:100%}
+.ch-02 .wx{position:absolute;left:6%;top:15%;font:700 clamp(14px,2.4vw,26px)/1.25 var(--sans);color:#2a251c;letter-spacing:.04em}
+.ch-02 .wx small{display:block;font:500 clamp(9px,1.2vw,13px)/1.6 var(--mono);letter-spacing:.14em;opacity:.65;margin-top:6px}
+.ch-02 .wx2{position:absolute;right:6%;top:15%;text-align:right;font:600 clamp(10px,1.4vw,15px)/1.7 var(--mono);color:#2a251c;opacity:.8}
+.ch-02 .band{position:absolute;left:0;right:0;bottom:0;height:13%;background:#2a251c;color:#d8cfba;
+  display:flex;align-items:center;justify-content:space-between;padding:0 22% 0 5%;font:600 clamp(9px,1.3vw,14px)/1 var(--mono);letter-spacing:.1em}
+
+/* 04 儿童节目 */
+.ch-04{background:radial-gradient(ellipse at 50% 30%,#4a3a22,#241c12 70%,#120e08)}
+.ch-04 .curtain{position:absolute;inset:0;background:
+  linear-gradient(90deg,#3a1414,transparent 18%,transparent 82%,#3a1414),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.35) 0 6px,transparent 6px 18px)}
+.ch-04 .bear{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:38%}
+.ch-04 .cap{position:absolute;left:8%;right:8%;bottom:15%;background:rgba(10,8,6,.82);border:1px solid rgba(224,162,75,.35);
+  padding:2.6% 3.4%;font:500 clamp(11px,1.6vw,18px)/1.6 var(--sans);color:#f0e6d4;border-radius:4px}
+
+/* 07 家庭录像 */
+.ch-07{background:linear-gradient(#3a3026,#241d16 70%,#14100c)}
+.ch-07 .warm{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 42% 38%,rgba(255,196,120,.30),transparent 70%)}
+.ch-07 .stamp{position:absolute;left:5%;top:15%;font:700 clamp(9px,1.3vw,14px)/1.6 var(--mono);color:#ffd9a0;text-shadow:0 0 10px rgba(255,180,90,.7);letter-spacing:.08em}
+.ch-07 .stamp b{display:block;font-size:.8em;opacity:.75}
+.ch-07 .cake{position:absolute;left:34%;bottom:22%;width:26%}
+.ch-07 .door{position:absolute;right:9%;bottom:0;width:17%;height:62%;background:linear-gradient(180deg,#5a3f26,#2e1d11);border-radius:2px 2px 0 0;box-shadow:inset 0 0 18px #000}
+.ch-07 .figure{position:absolute;right:12%;bottom:0;width:12%;height:52%;opacity:0;transition:opacity 2.4s ease-in}
+.ch-07 .figure.on{opacity:.96}
+.ch-07 .figure::before{content:"";position:absolute;left:50%;top:0;transform:translateX(-50%);width:52%;aspect-ratio:1;border-radius:50%;background:#050403}
+.ch-07 .figure::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:100%;height:72%;background:#050403;border-radius:40% 40% 0 0}
+.ch-07 .cap{position:absolute;left:5%;bottom:15%;font:500 clamp(10px,1.5vw,16px)/1.5 var(--serif);color:#e8dcc8;opacity:.85}
+
+/* 09 布道 */
+.ch-09{background:radial-gradient(ellipse at 50% 18%,#2a2018,#0d0a08 72%)}
+.ch-09 .win{position:absolute;left:50%;top:16%;transform:translateX(-50%);width:22%;height:34%;
+  background:linear-gradient(#6b4a2a,#2a180c);clip-path:polygon(50% 0,100% 38%,86% 100%,14% 100%,0 38%);opacity:.55;filter:blur(.6px)}
+.ch-09 .cross{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:2.2%;height:20%;background:#0a0705}
+.ch-09 .cross::after{content:"";position:absolute;left:-130%;top:26%;width:360%;height:22%;background:#0a0705}
+.ch-09 .preacher{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:13%;height:34%;background:#050403;border-radius:44% 44% 0 0}
+.ch-09 .preacher::before{content:"";position:absolute;left:50%;top:-22%;transform:translateX(-50%);width:52%;aspect-ratio:1;border-radius:50%;background:#050403}
+.ch-09 .cap{position:absolute;left:8%;right:8%;bottom:15%;text-align:center;font:400 clamp(12px,1.9vw,22px)/1.7 var(--serif);color:#d8cbb6}
+
+/* 13 无信号 */
+.ch-13{background:#000}
+#ghost13{position:absolute;inset:0;z-index:18;pointer-events:none;opacity:0;transition:opacity 2.6s}
+#ghost13 i{position:absolute;left:50%;top:24%;transform:translateX(-50%);width:7%;aspect-ratio:1;border-radius:50%;background:#000}
+#ghost13 b{position:absolute;left:50%;top:35%;transform:translateX(-50%);width:13%;height:36%;background:#000;border-radius:38% 38% 0 0}
+#ghost13.on{opacity:.52}
+
+/* AUX 维护通道 */
+.ch-aux{background:#06121f;font:500 clamp(10px,1.45vw,15px)/1.75 var(--mono);color:#9fd6ff;padding:7% 8%}
+.ch-aux .ln{opacity:0;transform:translateY(3px);transition:.4s}
+.ch-aux .ln.on{opacity:1;transform:none}
+.ch-aux .cur{display:inline-block;width:.6em;height:1em;background:#9fd6ff;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ---------- OSD ---------- */
+#osd{z-index:30;pointer-events:none;font-family:var(--mono);color:#f2f2f2;
+  text-shadow:0 0 8px rgba(255,255,255,.55),0 1px 0 rgba(0,0,0,.9);padding:3.4% 4%;
+  display:grid;grid-template-rows:auto 1fr auto;font-size:clamp(8px,1.15vw,13px);letter-spacing:.1em;opacity:0;transition:opacity .3s}
+.screen.live #osd{opacity:.92}
+#osd .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#osd .row.bot{align-items:flex-end;justify-content:flex-end;gap:16px}
+#bug{font-weight:700;letter-spacing:.16em}
+#bug small{display:block;font-weight:400;opacity:.6;font-size:.72em;letter-spacing:.2em;margin-top:3px}
+#tc{text-align:right;font-weight:700}
+#tc small{display:block;font-weight:400;opacity:.55;font-size:.78em;margin-top:3px}
+#chanNum{font-weight:700;font-size:1.15em;letter-spacing:.08em}
+#play{opacity:.8}
+#play i{display:inline-block;width:0;height:0;border-left:.62em solid #f2f2f2;border-top:.36em solid transparent;border-bottom:.36em solid transparent;margin-right:.36em;vertical-align:-.05em}
+
+/* ---------- 遥控器 / 控制区 ---------- */
+.rig{position:relative;z-index:3;width:min(96vw,940px);display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:center}
+.remote{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+  padding:14px 18px;border-radius:16px;
+  background:linear-gradient(#211d19,#151210);
+  box-shadow:0 20px 40px -24px #000,inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(255,255,255,.05);
+}
+.key{
+  font:600 12px/1 var(--mono);letter-spacing:.06em;color:#cfc4b6;
+  background:linear-gradient(#2e2823,#1d1915);border:1px solid rgba(255,255,255,.07);
+  border-radius:9px;padding:11px 13px;cursor:pointer;min-width:52px;text-align:center;
+  transition:transform .1s,background .15s,color .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 2px 0 #0b0908;
+}
+.key:hover{background:linear-gradient(#3a322b,#241f1a);color:#fff}
+.key:active{transform:translateY(1px);box-shadow:none}
+.key.on{background:linear-gradient(#8a5a1e,#5d3a12);color:#ffe6bf;border-color:#c98a2e;box-shadow:0 0 16px -2px rgba(224,162,75,.6)}
+.key.power{color:#e07a5f;min-width:64px}
+.key.power.on{background:linear-gradient(#7a2015,#4a120c);color:#ffc9bd;border-color:#b8362a;box-shadow:0 0 18px -2px rgba(220,80,60,.55)}
+.key.guide{color:#9fb8c8}
+.sep{width:1px;height:26px;background:rgba(255,255,255,.08)}
+.hint{width:100%;text-align:center;font:500 11px/1.6 var(--mono);letter-spacing:.14em;color:#6b6055;text-transform:uppercase}
+
+/* 节目单 */
+.guide{
+  position:fixed;inset:0;z-index:90;display:none;place-items:center;padding:24px;
+  background:rgba(3,2,2,.82);backdrop-filter:blur(3px);
+}
+.guide.on{display:grid}
+.guide .card{
+  width:min(560px,100%);background:#e8dfcc;color:#231d16;border-radius:6px;padding:26px 26px 22px;
+  box-shadow:0 40px 90px -30px #000;font-family:var(--serif);
+  transform:rotate(-.5deg);
+}
+.guide h2{font:700 15px/1.4 var(--mono);letter-spacing:.22em;text-transform:uppercase;margin-bottom:4px}
+.guide .sub{font:500 11px/1.6 var(--mono);letter-spacing:.16em;opacity:.6;margin-bottom:18px}
+.guide table{width:100%;border-collapse:collapse;font:500 13.5px/1.9 var(--serif)}
+.guide td{padding:7px 0;border-bottom:1px dotted rgba(35,29,22,.28)}
+.guide td:first-child{font-family:var(--mono);font-weight:700;width:64px;letter-spacing:.08em}
+.guide td:last-child{text-align:right;font-family:var(--mono);font-size:11.5px;opacity:.6;white-space:nowrap}
+.guide tr.odd td{color:#8a2318}
+.guide tr.odd td:last-child{color:#8a2318;opacity:.9}
+.guide .close{margin-top:18px;font:600 11.5px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;background:none;border:1px solid rgba(35,29,22,.35);border-radius:99px;padding:9px 16px;cursor:pointer;color:#231d16}
+
+/* 最终黑屏 */
+#final{position:fixed;inset:0;z-index:100;background:#000;display:none;place-items:center;text-align:center;padding:30px;pointer-events:none}
+#final button{pointer-events:auto;margin-top:26px;background:none;border:1px solid rgba(196,190,180,.35);border-radius:99px;padding:11px 20px;color:#b3a99e;font:600 11.5px/1 var(--mono);letter-spacing:.2em;cursor:pointer;transition:.2s}
+#final button:hover{border-color:#c2412d;color:#e8dcd0}
+#final.on{display:grid}
+#final p{font:400 clamp(15px,2.2vw,24px)/1.9 var(--serif);color:#8d8379;max-width:34ch}
+#final em{color:#c2412d;font-style:normal}
+
+/* 递归画面 */
+#ease{position:absolute;inset:0;z-index:12;background:#000}
+.recurs{position:absolute;inset:0;z-index:45;display:none;place-items:center;background:#050505}
+.recurs.on{display:grid}
+.recurs .box{width:34%;aspect-ratio:4/3;border-radius:6px;background:#0a0a0a;box-shadow:0 0 40px rgba(140,190,255,.25),0 0 0 3px #141414;display:grid;place-items:center;position:relative;overflow:hidden}
+.recurs .box::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.5) 0 1px,transparent 1px 3px)}
+.recurs .glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(160,200,255,.18),transparent 62%)}
+.recurs .cap{position:absolute;left:0;right:0;bottom:8%;text-align:center;font:400 clamp(12px,1.9vw,20px)/1.6 var(--serif);color:#a89e93;z-index:3}
+
+@media (max-width:620px){
+  .key{min-width:44px;padding:10px;font-size:11px}
+  .remote{gap:8px;padding:12px}
+  .rig{gap:8px}
+  .screen{border-radius:16px/13px}
+  .tv{padding:12px 12px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  .roll,.track{animation:none;opacity:.06}
+  .tv.off #powerdot{animation:none;opacity:.6;width:6px;height:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 电视 ============ -->
+<div class="tv" id="tv">
+  <div class="brand">K-13 Color Television</div>
+  <div class="screen" id="screen">
+    <canvas id="snow" width="200" height="150"></canvas>
+    <div id="stage" data-ch="02">
+
+      <!-- 02 气象 -->
+      <div class="ch ch-02">
+        <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M40 0H0V40" fill="none" stroke="#2a251c" stroke-opacity=".12" stroke-width="1"/>
+            </pattern>
+            <radialGradient id="land" cx="45%" cy="40%" r="70%">
+              <stop offset="0" stop-color="#bfb08e"/><stop offset="1" stop-color="#8f8164"/>
+            </radialGradient>
+          </defs>
+          <rect width="800" height="600" fill="url(#grid)"/>
+          <path d="M120 150 q90 -60 190 -30 t170 10 q100 -50 190 20 q60 60 10 130 q-40 80 -160 90 t-210 -10 q-120 20 -180 -60 q-50 -70 -10 -150 z"
+                fill="url(#land)" stroke="#2a251c" stroke-opacity=".35" stroke-width="2"/>
+          <g stroke="#6b5f45" fill="none" stroke-width="2.5" opacity=".7">
+            <path d="M160 240 q120 -70 260 -20"/>
+            <path d="M150 330 q140 -60 300 -10"/>
+            <path d="M170 420 q150 -50 300 10"/>
+          </g>
+          <g fill="#8a2318">
+            <circle cx="300" cy="250" r="6"/><circle cx="470" cy="290" r="6"/><circle cx="380" cy="380" r="6"/>
+          </g>
+          <g font-family="ui-monospace,Consolas,monospace" font-size="15" fill="#2a251c" opacity=".75">
+            <text x="310" y="240">12°</text><text x="480" y="280">11°</text><text x="390" y="370">9°</text>
+          </g>
+        </svg>
+        <div class="wx">今夜到明天<br>多云转阴<small>本台气象站 · 1987-11-03</small></div>
+        <div class="wx2">气温 12°C<br>湿度 78%<br>风向 北</div>
+        <div class="band"><span>K-13 农事气象</span><span>每天 03:00 播出</span></div>
+      </div>
+
+      <!-- 04 儿童节目 -->
+      <div class="ch ch-04">
+        <div class="curtain"></div>
+        <svg class="bear" viewBox="0 0 300 300" aria-hidden="true">
+          <circle cx="80" cy="86" r="30" fill="#b9873f"/><circle cx="220" cy="86" r="30" fill="#b9873f"/>
+          <circle cx="80" cy="86" r="16" fill="#8a5f24"/><circle cx="220" cy="86" r="16" fill="#8a5f24"/>
+          <circle cx="150" cy="150" r="86" fill="#d1a058"/>
+          <ellipse cx="150" cy="186" rx="42" ry="32" fill="#f0dcb4"/>
+          <g class="eyes">
+            <circle cx="118" cy="134" r="11" fill="#2a2018"/><circle cx="182" cy="134" r="11" fill="#2a2018"/>
+            <circle cx="121" cy="130" r="3.5" fill="#fff"/><circle cx="185" cy="130" r="3.5" fill="#fff"/>
+          </g>
+          <ellipse cx="150" cy="176" rx="9" ry="7" fill="#2a2018"/>
+          <path d="M132 196 q18 16 36 0" stroke="#2a2018" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="cap" id="bearcap">小熊说：今天我们数一数，现在有几个小朋友在看？</div>
+      </div>
+
+      <!-- 07 家庭录像 -->
+      <div class="ch ch-07">
+        <div class="warm"></div>
+        <div class="stamp">NOV 03 1987<b>19:42:11</b></div>
+        <div class="door"></div>
+        <div class="figure" id="fig7"></div>
+        <svg class="cake" viewBox="0 0 200 160" aria-hidden="true">
+          <ellipse cx="100" cy="140" rx="86" ry="18" fill="#1a1410" opacity=".6"/>
+          <rect x="34" y="86" width="132" height="52" rx="6" fill="#e8c9a0"/>
+          <rect x="34" y="86" width="132" height="14" fill="#f3debd"/>
+          <g fill="#f0b95a">
+            <rect x="66" y="60" width="5" height="26"/><rect x="98" y="54" width="5" height="32"/><rect x="130" y="60" width="5" height="26"/>
+          </g>
+          <g class="flame" fill="#ffd27a" opacity=".95">
+            <ellipse cx="68.5" cy="54" rx="5" ry="9"/><ellipse cx="100.5" cy="48" rx="5" ry="10"/><ellipse cx="132.5" cy="54" rx="5" ry="9"/>
+          </g>
+        </svg>
+        <div class="cap" id="cap7">爸爸 · 妈妈 · 我</div>
+      </div>
+
+      <!-- 09 布道 -->
+      <div class="ch ch-09">
+        <div class="win"></div>
+        <div class="cross"></div>
+        <div class="preacher"></div>
+        <div class="cap" id="cap9">我们都在等一个人回来。<br>他今晚会来。请把门留着。</div>
+      </div>
+
+      <!-- 13 无信号 -->
+      <div class="ch ch-13"></div>
+
+      <!-- AUX 维护 -->
+      <div class="ch ch-aux" id="aux">
+        <div class="ln on">K-13 维护通道 · 1987-11-03 03:14</div>
+        <div class="ln on">操作员：已离台</div>
+        <div class="ln on">最后指令：重复播放</div>
+        <div class="ln on">磁带剩余：未知</div>
+        <div class="ln" id="auxLine"></div>
+        <div><span class="cur"></span></div>
+      </div>
+
+    </div>
+
+    <div id="ghost13" aria-hidden="true"><i></i><b></b></div>
+
+    <div class="recurs" id="recurs">
+      <div class="box">
+        <div class="glow"></div>
+        <div class="box" style="width:52%">
+          <div class="glow"></div>
+          <div class="box" style="width:52%;background:#000"></div>
+        </div>
+      </div>
+      <div class="cap">你正在看什么？</div>
+    </div>
+
+    <div id="ease" hidden></div>
+
+    <div class="crtlines"></div>
+    <div class="crtvig"></div>
+    <div class="crtglass"></div>
+    <div class="roll"></div>
+    <div class="track"></div>
+
+    <div id="osd">
+      <div class="row">
+        <div id="bug">K-13<small>深夜放送</small></div>
+        <div id="tc">1987-11-03<small>03:14:00</small></div>
+      </div>
+      <div></div>
+      <div class="row bot">
+        <div id="chanNum">CH 02</div>
+        <div id="play"><i></i>PLAY</div>
+      </div>
+    </div>
+
+    <div id="powerdot"></div>
+  </div>
+</div>
+
+<!-- ============ 遥控器 ============ -->
+<div class="rig">
+  <div class="remote" role="group" aria-label="遥控器">
+    <button class="key power" id="power" data-k="power">POWER</button>
+    <div class="sep"></div>
+    <button class="key" data-ch="02">02</button>
+    <button class="key" data-ch="04">04</button>
+    <button class="key" data-ch="07">07</button>
+    <button class="key" data-ch="09">09</button>
+    <button class="key" data-ch="13">13</button>
+    <button class="key" data-ch="aux">AUX</button>
+    <div class="sep"></div>
+    <button class="key guide" id="guideBtn">节目单</button>
+  </div>
+  <div class="hint" id="hint">先按 POWER 开机 · 也可以直接按键盘上的数字</div>
+</div>
+
+<!-- ============ 节目单 ============ -->
+<div class="guide" id="guide">
+  <div class="card">
+    <h2>K-13 节目单</h2>
+    <div class="sub">1987 年 11 月 3 日 · 星期二 · 凌晨</div>
+    <table>
+      <tr><td>02</td><td>农事气象</td><td>03:00</td></tr>
+      <tr><td>04</td><td>小熊给你讲故事</td><td>03:30</td></tr>
+      <tr><td>07</td><td>家庭录像（自录）</td><td>04:00</td></tr>
+      <tr><td>09</td><td>深夜布道</td><td>04:30</td></tr>
+      <tr class="odd"><td>13</td><td>—— 该频道不存在 ——</td><td>——</td></tr>
+      <tr><td>AUX</td><td>维护通道（请勿使用）</td><td>——</td></tr>
+    </table>
+    <button class="close" id="guideClose">收到</button>
+  </div>
+</div>
+
+<!-- ============ 最终黑屏 ============ -->
+<div id="final"><p id="finalText"></p><button id="again">按 POWER 再次开机</button></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  const tv = $('#tv'), screen = $('#screen'), stage = $('#stage'), snow = $('#snow');
+  const osd = $('#osd'), tc = $('#tc'), chanNum = $('#chanNum'), hint = $('#hint');
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- 状态 ---------------- */
+  let powered = false;
+  let ch = '02';
+  let switches = 0;
+  let visits = {};
+  let busy = false;          // 换台动画中
+  let easDone = false;       // 紧急广播已播完
+  let dead = false;          // 彻底停播
+  let started = false;       // 是否已开机过
+  let lastAct = Date.now();
+
+  const NOW = { y: 1987, m: 11, d: 3, h: 3, mi: 14, s: 0 };
+
+  /* ---------------- 雪花 ---------------- */
+  const nctx = snow.getContext('2d');
+  const nimg = nctx.createImageData(200, 150);
+  function noiseFrame() {
+    const d = nimg.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() * 255;
+      d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+    }
+    nctx.putImageData(nimg, 0, 0);
+  }
+  setInterval(() => { if (powered && !dead) noiseFrame(); }, 78);
+  noiseFrame();
+
+  /* ---------------- 时间码 ---------------- */
+  function tickClock() {
+    NOW.s++;
+    if (NOW.s > 59) { NOW.s = 0; NOW.mi++; }
+    if (NOW.mi > 59) { NOW.mi = 0; NOW.h++; }
+    const p = n => String(n).padStart(2, '0');
+    tc.innerHTML = `${NOW.y}-${p(NOW.m)}-${p(NOW.d)}<small>${p(NOW.h)}:${p(NOW.mi)}:${p(NOW.s)}</small>`;
+  }
+  setInterval(tickClock, 1000);
+
+  /* ---------------- 声音 ---------------- */
+  let AC = null, master = null, hissG = null, humG = null, tonG = null, started2 = false;
+
+  function audioInit() {
+    if (started2) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    try {
+      AC = new Ctx();
+      master = AC.createGain(); master.gain.value = 0; master.connect(AC.destination);
+
+      // 磁带嘶声
+      const len = AC.sampleRate * 2;
+      const buf = AC.createBuffer(1, len, AC.sampleRate);
+      const chd = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) chd[i] = Math.random() * 2 - 1;
+      hissG = AC.createGain(); hissG.gain.value = 0;
+      const hiss = AC.createBufferSource(); hiss.buffer = buf; hiss.loop = true;
+      const hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800;
+      const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7200;
+      hiss.connect(hp); hp.connect(lp); lp.connect(hissG); hissG.connect(master); hiss.start();
+
+      // 电源嗡鸣
+      humG = AC.createGain(); humG.gain.value = 0;
+      const hum = AC.createOscillator(); hum.type = 'sine'; hum.frequency.value = 50;
+      const hum2 = AC.createOscillator(); hum2.type = 'sine'; hum2.frequency.value = 100;
+      const hum2g = AC.createGain(); hum2g.gain.value = .35;
+      hum.connect(humG); hum2.connect(hum2g); hum2g.connect(humG); humG.connect(master);
+      hum.start(); hum2.start();
+
+      // 待用的音调（紧急广播）
+      tonG = AC.createGain(); tonG.gain.value = 0; tonG.connect(master);
+      started2 = true;
+    } catch (e) { /* 静默失败 */ }
+  }
+
+  function burst(vol = .5, ms = 90, freq = 1400) {
+    if (!AC) return;
+    const t = AC.currentTime;
+    const src = AC.createBufferSource();
+    const len = Math.floor(AC.sampleRate * (ms / 1000));
+    const b = AC.createBuffer(1, len, AC.sampleRate);
+    const d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    src.buffer = b;
+    const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .8;
+    const g = AC.createGain(); g.gain.value = vol;
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t); src.stop(t + ms / 1000 + .02);
+  }
+
+  function powerSound(on) {
+    if (!AC) return;
+    const t = AC.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setTargetAtTime(on ? .9 : 0, t, on ? .05 : .12);
+    hissG.gain.setTargetAtTime(on ? .035 : 0, t, .2);
+    humG.gain.setTargetAtTime(on ? .05 : 0, t, .2);
+    if (on) {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(420, t);
+      o.frequency.exponentialRampToValueAtTime(90, t + .5);
+      g.gain.setValueAtTime(.22, t); g.gain.exponentialRampToValueAtTime(.001, t + .6);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + .65);
+      burst(.4, 180, 900);
+    }
+  }
+
+  function easTone(on) {
+    if (!AC || !tonG) return;
+    const t = AC.currentTime;
+    tonG.gain.setTargetAtTime(on ? .16 : 0, t, .04);
+    if (on && !tonG._oscs) {
+      const a = AC.createOscillator(), b = AC.createOscillator(), g = AC.createGain();
+      a.type = 'sine'; a.frequency.value = 853;
+      b.type = 'sine'; b.frequency.value = 960;
+      g.gain.value = .5;
+      a.connect(g); b.connect(g); g.connect(tonG);
+      a.start(); b.start();
+      tonG._oscs = [a, b, g];
+      // 双音交替
+      let flip = false;
+      tonG._iv = setInterval(() => {
+        flip = !flip;
+        g.gain.setTargetAtTime(flip ? .12 : .5, AC.currentTime, .02);
+      }, 450);
+    }
+    if (!on && tonG._iv) { clearInterval(tonG._iv); tonG._iv = null; }
+  }
+
+  /* ---------------- 画面 ---------------- */
+  function setSnow(v) { snow.style.opacity = String(v); }
+
+  function osdVisible(v) { screen.classList.toggle('live', v); }
+
+  function paintChannel() {
+    stage.dataset.ch = ch;
+    chanNum.textContent = ch === 'aux' ? 'AUX' : 'CH ' + ch;
+    // 雪花强度 / OSD 显示
+    if (!powered) { setSnow(0); osdVisible(false); return; }
+    if (ch === '13') { setSnow(.92); osdVisible(false); }
+    else if (ch === 'aux') { setSnow(.06); osdVisible(false); }
+    else { setSnow(.07); osdVisible(true); }
+    stage.classList.remove('freeze');
+  }
+
+  /* 换台 */
+  function tune(next, opts = {}) {
+    if (dead) return;
+    if (!powered) { powerOn(); return; }
+    if (busy || next === ch) { if (next !== ch) return; }
+    audioInit();
+    busy = true;
+    lastAct = Date.now();
+
+    stage.classList.add('freeze');
+    $('#ghost13').classList.remove('on');
+    setSnow(.95);
+    if (!opts.quiet) burst(.32, 70, 1800);
+
+    setTimeout(() => {
+      ch = next;
+      visits[ch] = (visits[ch] || 0) + 1;
+      switches++;
+      paintChannel();
+      stage.classList.remove('freeze');
+      busy = false;
+      afterTune();
+    }, REDUCED ? 60 : 190);
+  }
+
+  function afterTune() {
+    // 频道本身的机关
+    if (ch === '07') {
+      const fig = $('#fig7');
+      fig.classList.remove('on');
+      const cap = $('#cap7');
+      cap.textContent = '爸爸 · 妈妈 · 我';
+      setTimeout(() => { if (ch === '07' && powered) fig.classList.add('on'); }, 1500);
+      setTimeout(() => { if (ch === '07' && powered) { fig.classList.add('on'); cap.textContent = '爸爸 · 妈妈 · 我 · ……还有谁？'; } }, 7200);
+    }
+    if (ch === '04') {
+      const cap = $('#bearcap');
+      cap.textContent = '小熊说：今天我们数一数，现在有几个小朋友在看？';
+      setTimeout(() => { if (ch === '04' && powered) cap.textContent = '……数到了。是 1 个。'; }, 7500);
+    }
+    if (ch === '13') {
+      const box = $('#ghost13');
+      box.classList.remove('on');
+      setTimeout(() => { if (ch === '13' && powered) box.classList.add('on'); }, 3200);
+    }
+    if (ch === 'aux') {
+      const line = $('#auxLine');
+      line.classList.remove('on'); line.textContent = '';
+      setTimeout(() => {
+        if (ch !== 'aux' || !powered) return;
+        line.textContent = '> 检测到外部输入：' + deviceName();
+        line.classList.add('on');
+      }, 1800);
+      setTimeout(() => {
+        if (ch !== 'aux' || !powered) return;
+        line.textContent = '> 该输入不属于本台。';
+        line.classList.add('on');
+        const aux = $('#aux');
+        const extra = document.createElement('div');
+        extra.className = 'ln on';
+        extra.textContent = '> 请立即关闭电视。';
+        extra.style.color = '#ff9a8a';
+        aux.insertBefore(extra, aux.lastElementChild);
+      }, 4200);
+    }
+    // 触发紧急广播
+    const shouldEAS =
+      (!easDone && !dead) && (
+        (ch === '13' && (visits['13'] || 0) >= 2) ||
+        switches >= 12
+      );
+    if (shouldEAS) setTimeout(startEAS, 1400);
+  }
+
+  function deviceName() {
+    const ua = navigator.userAgent;
+    if (/iPad/.test(ua)) return 'iPad';
+    if (/iPhone|iOS/.test(ua)) return 'iPhone';
+    if (/Android/.test(ua)) return '安卓设备';
+    if (/Macintosh/.test(ua)) return 'Macintosh';
+    if (/Windows/.test(ua)) return 'Windows 终端';
+    if (/Linux/.test(ua)) return 'Linux 终端';
+    return '未知终端';
+  }
+
+  /* ---------------- 开机 / 关机 ---------------- */
+  function powerOn() {
+    if (dead) { showRecursion(); return; }
+    audioInit();
+    if (AC && AC.state === 'suspended') AC.resume();
+    powered = true;
+    started = true;
+    tv.classList.remove('off');
+    screen.classList.add('live');
+    powerSound(true);
+    setSnow(.95);
+    osdVisible(false);
+    busy = false;
+    lastAct = Date.now();
+    hint.textContent = '← → 换台 · 数字键直选 · 节目单里有 13 台';
+    setTimeout(() => { paintChannel(); burst(.25, 60, 1200); }, 380);
+    setTimeout(() => { paintChannel(); }, 900);
+  }
+
+  function powerOff(silent) {
+    if (!powered) return;
+    powered = false;
+    tv.classList.add('off');
+    screen.classList.remove('live');
+    setSnow(0);
+    osdVisible(false);
+    easTone(false);
+    if (!silent) powerSound(false);
+    else if (AC) { master.gain.setTargetAtTime(0, AC.currentTime, .1); }
+  }
+
+  /* ---------------- 紧急广播 ---------------- */
+  async function startEAS() {
+    if (easDone || dead || !powered) return;
+    easDone = true;
+    const eas = $('#ease');
+    eas.hidden = false;
+    eas.style.zIndex = 50;
+    eas.style.background = '#000';
+    osdVisible(false);
+    setSnow(0);
+    burst(.5, 320, 700);
+    await sleep(420);
+
+    // 彩条
+    eas.innerHTML = '';
+    const bars = document.createElement('div');
+    bars.style.cssText = 'position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr)';
+    ['#c8c8c8','#c8c800','#00c8c8','#00c800','#c800c8','#c80000','#0000c8'].forEach(c => {
+      const d = document.createElement('div'); d.style.background = c; bars.appendChild(d);
+    });
+    eas.appendChild(bars);
+    easTone(true);
+    await sleep(900);
+
+    // 文字
+    eas.innerHTML =
+      '<div style="position:absolute;left:0;right:0;top:0;height:11%;background:#7a1410;display:flex;align-items:center;justify-content:space-between;padding:0 4%;font:700 clamp(9px,1.25vw,14px)/1 ui-monospace,Consolas,monospace;letter-spacing:.2em;color:#fff">' +
+        '<span>紧急广播系统 · EAS</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:8px"><i style="width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block;animation:blink 1s steps(1) infinite"></i>ON AIR</span>' +
+      '</div>' +
+      '<div id="easText" style="position:absolute;left:0;right:0;top:13%;bottom:0;display:grid;place-content:center;text-align:center;padding:5%;font:600 clamp(11px,1.7vw,19px)/1.9 ui-monospace,Consolas,monospace;color:#f2f2f2;letter-spacing:.12em"></div>';
+    const box = $('#easText');
+    const dev = deviceName();
+    const now = new Date();
+    const hm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const lines = [
+      ['紧急广播系统', 700],
+      ['这不是测试。', 900],
+      ['信号来源：本地', 900],
+      ['当前时间 ' + hm + '，你在 ' + dev + ' 上观看', 1100],
+      ['本台已确认：观看者 1 名', 1000],
+      ['请保持观看。', 900],
+      ['请勿换台。', 700],
+      ['请勿关机。', 700]
+    ];
+    for (const [txt, wait] of lines) {
+      const p = document.createElement('div');
+      p.textContent = txt;
+      p.style.opacity = '0';
+      p.style.transition = 'opacity .45s';
+      box.appendChild(p);
+      requestAnimationFrame(() => { p.style.opacity = '1'; });
+      burst(.12, 40, 2200);
+      await sleep(wait);
+    }
+    await sleep(1400);
+    easTone(false);
+
+    // 切黑 + 关机
+    eas.innerHTML = '';
+    eas.style.background = '#000';
+    await sleep(700);
+    eas.hidden = true;
+    powerOff(true);
+    dead = true;
+    await sleep(1200);
+    showFinal();
+  }
+
+  function showFinal() {
+    const f = $('#final');
+    const t = $('#finalText');
+    f.classList.add('on');
+    t.innerHTML = '本台将于明日 <em>03:14</em> 停播。<br>感谢您多年来的收看。';
+  }
+
+  /* ---------------- 递归 ---------------- */
+  function showRecursion() {
+    const f = $('#final');
+    f.classList.remove('on');
+    const r = $('#recurs');
+    r.classList.add('on');
+    tv.classList.remove('off');
+    screen.classList.add('live');
+    osdVisible(false);
+    stage.style.opacity = '0';
+    setSnow(.04);
+    // 继续有声音：极轻的哼鸣
+    audioInit();
+    if (AC) { if (AC.state === 'suspended') AC.resume(); master.gain.setTargetAtTime(.35, AC.currentTime, .3);
+      hissG.gain.setTargetAtTime(.02, AC.currentTime, .3); humG.gain.setTargetAtTime(.08, AC.currentTime, .3); }
+  }
+
+  /* ---------------- 空闲自动换台 ---------------- */
+  setInterval(() => {
+    if (!powered || dead || easDone || busy) return;
+    if (Date.now() - lastAct < 46000) return;
+    lastAct = Date.now();
+    burst(.3, 80, 1600);
+    tune('13', { quiet: true });
+  }, 3000);
+
+  /* ---------------- 控件 ---------------- */
+  $('#power').addEventListener('click', () => {
+    audioInit();
+    if (AC && AC.state === 'suspended') AC.resume();
+    if (!powered) powerOn();
+    else powerOff(false);
+    $('#power').classList.toggle('on', powered);
+    lastAct = Date.now();
+  });
+
+  $$('[data-ch]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      audioInit();
+      if (AC && AC.state === 'suspended') AC.resume();
+      if (!powered) { powerOn(); setTimeout(() => tune(btn.dataset.ch), 700); }
+      else tune(btn.dataset.ch);
+      lastAct = Date.now();
+    });
+  });
+
+  $$('[data-ch]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-ch]').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  }));
+
+  const guide = $('#guide');
+  $('#again').addEventListener('click', () => { $('#final').classList.remove('on'); powerOn(); });
+  $('#guideBtn').addEventListener('click', () => { guide.classList.add('on'); lastAct = Date.now(); });
+  $('#guideClose').addEventListener('click', () => guide.classList.remove('on'));
+  guide.addEventListener('click', e => { if (e.target === guide) guide.classList.remove('on'); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') guide.classList.remove('on');
+    if (e.key === 'p' || e.key === 'P') { $('#power').click(); return; }
+    if (e.key === 'g' || e.key === 'G') { guide.classList.toggle('on'); return; }
+    if (!powered) { if (e.key >= '0' && e.key <= '9') powerOn(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { cycle(1); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { cycle(-1); return; }
+    const map = { '2': '02', '4': '04', '7': '07', '9': '09', '1': '13', '0': 'aux' };
+    if (map[e.key]) { tune(map[e.key]); }
+  });
+
+  const ORDER = ['02', '04', '07', '09', '13', 'aux'];
+  function cycle(dir) {
+    const i = ORDER.indexOf(ch);
+    const n = (i + dir + ORDER.length) % ORDER.length;
+    tune(ORDER[n]);
+  }
+
+  /* ---------------- 启动 ---------------- */
+  paintChannel();
+  osdVisible(false);
+  setSnow(0);
+  tickClock();
+})();
+</script>
+</body>
+</html>
